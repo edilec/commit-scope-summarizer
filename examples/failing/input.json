@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1",
+  "packageRoots": ["packages/app"],
+  "commits": [
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "subject": "feat(ui): add synthetic view",
+      "files": ["packages/app/src/view.js"],
+      "reverts": null
+    }
+  ]
+}

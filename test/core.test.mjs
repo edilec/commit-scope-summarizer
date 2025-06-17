@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeHistory } from '../src/index.mjs';
+import { summarizeHistory, isSafePath } from '../src/index.mjs';
 
 const a = 'a'.repeat(40);
 const b = 'b'.repeat(40);
@@ -182,6 +182,27 @@ test('commit and file bounds accept N and refuse N plus one', () => {
   report = summarizeHistory(files, { now: () => 0, limits: { maxFiles: 2 } });
   assert.equal(report.status, 'incomplete');
   assert.ok(report.findings.some(f => f.location.pointer === '/limits/maxFiles'));
+});
+
+test('package-root, subject and safe-path unit bounds accept N and refuse N plus one', () => {
+  const roots = clean();
+  roots.packageRoots = ['packages/app'];
+  assert.equal(summarizeHistory(roots, { now: () => 0, limits: { maxPackageRoots: 1 } }).status, 'pass');
+  roots.packageRoots.push('packages/lib');
+  const tooManyRoots = summarizeHistory(roots, { now: () => 0, limits: { maxPackageRoots: 1 } });
+  assert.equal(tooManyRoots.status, 'incomplete');
+  assert.ok(tooManyRoots.findings.some(f => f.location.pointer === '/limits/maxPackageRoots'));
+
+  const subject = clean();
+  const exact = subject.commits[0].subject.length;
+  assert.equal(summarizeHistory(subject, { now: () => 0, limits: { maxSubjectUnits: exact } }).status, 'pass');
+  subject.commits[0].subject += 'X';
+  const tooLong = summarizeHistory(subject, { now: () => 0, limits: { maxSubjectUnits: exact } });
+  assert.equal(tooLong.status, 'incomplete');
+  assert.ok(tooLong.findings.some(f => f.location.pointer === '/limits/maxSubjectUnits'));
+
+  assert.equal(isSafePath('a'.repeat(256)), true);
+  assert.equal(isSafePath('a'.repeat(257)), false);
 });
 
 test('injected clock allows exact deadline but refuses elapsed N plus one and backward time', () => {

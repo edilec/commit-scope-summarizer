@@ -17,11 +17,32 @@ const RULE_SEVERITY = Object.freeze({
   'revert-ambiguous': 'warning',
   'limit-exceeded': 'warning',
   'clock-invalid': 'warning',
+  'input-unreadable': 'warning',
+  'input-invalid': 'warning',
+  'path-outside-root': 'warning',
+  'input-alias-unsupported': 'warning',
 });
 const byCodeUnit = (a, b) => a === b ? 0 : a < b ? -1 : 1;
 const safePath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._/-]+$/u;
 export const isSafePath = value => typeof value === 'string' && value.length <= 256 && safePath.test(value) &&
   !value.split('/').some(part => !part || part === '.');
+
+export function incompleteInput(file, ruleId, pointer = '') {
+  if (!isSafePath(file) || !['input-unreadable', 'input-invalid', 'path-outside-root',
+    'input-alias-unsupported', 'limit-exceeded'].includes(ruleId)) throw new ConfigError('Invalid input report.');
+  const message = {
+    'input-unreadable': 'Named export could not be read or decoded.',
+    'input-invalid': 'Named export is not supported JSON history.',
+    'path-outside-root': 'Named export resolves outside the declared root.',
+    'input-alias-unsupported': 'Named export is an alias with ambiguous provenance.',
+    'limit-exceeded': 'Named export exceeds the byte limit.',
+  }[ruleId];
+  return { schemaVersion: '1', tool: TOOL_ID, status: 'incomplete',
+    summary: { checked: 0, errors: 0, warnings: 1, commits: 0, packages: 0, features: 0, candidates: 0, reverts: 0 },
+    findings: [{ ruleId, severity: RULE_SEVERITY[ruleId], message,
+      location: { file, ...(pointer ? { pointer } : {}) } }],
+    packageGroups: [], featureGroups: [], commits: [], releaseNotes: [], relationships: [] };
+}
 const isId = value => typeof value === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u.test(value);
 const SUBJECT = /^(feat|fix|perf|docs|refactor|test|build|ci|chore|revert)\(([A-Za-z0-9._-]{1,64})\)(!)?: ([^\r\n\u2028\u2029]{1,200})$/u;
 const visible = value => value.replace(/[\p{Default_Ignorable_Code_Point}\p{Cc}\p{Zl}\p{Zp}\s]/gu, '').length > 0;
