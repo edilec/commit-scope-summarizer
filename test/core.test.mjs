@@ -75,6 +75,33 @@ test('an unresolved revert is incomplete rather than treating its target as abse
   assert.equal(JSON.stringify(report).includes(c), false);
 });
 
+test('a commit beyond the analysis cap may revert a visible feature, so no active candidate is asserted', () => {
+  const exact = clean();
+  exact.commits[0].subject = 'feat(ui): add synthetic view';
+  const atBound = summarizeHistory(exact, { now: () => 0, limits: { maxCommits: 1 } });
+  assert.equal(atBound.status, 'fail');
+  assert.equal(atBound.summary.candidates, 1);
+
+  const document = clean();
+  document.commits = [
+    { id: a, subject: 'feat(ui): add synthetic view', files: ['packages/app/src/view.js'], reverts: null },
+    { id: b, subject: 'revert(ui): undo synthetic view', files: ['packages/app/src/view.js'], reverts: a },
+  ];
+  const complete = summarizeHistory(document, { now: () => 0 });
+  assert.equal(complete.status, 'pass');
+  assert.equal(complete.summary.candidates, 0);
+  assert.equal(complete.commits[0].releaseNote, 'reverted');
+
+  const limited = summarizeHistory(document, { now: () => 0, limits: { maxCommits: 1 } });
+  assert.equal(limited.status, 'incomplete');
+  assert.equal(limited.summary.commits, 2);
+  assert.equal(limited.summary.checked, 1);
+  assert.equal(limited.commits[0].releaseNote, 'unknown');
+  assert.deepEqual(limited.releaseNotes, []);
+  assert.equal(limited.findings.some(f => f.ruleId === 'release-note-review'), false);
+  assert.equal(limited.findings.some(f => f.ruleId === 'limit-exceeded' && f.location.pointer === '/limits/maxCommits'), true);
+});
+
 test('a revert of a revert is located as incomplete without guessing net release state', () => {
   const document = clean();
   document.commits = [

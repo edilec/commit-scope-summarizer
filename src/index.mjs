@@ -266,6 +266,11 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
       prior = commits[prior - 1].revertsOrdinal;
     }
   }
+  // A later, unexamined commit can revert any visible change or undo a visible
+  // revert. Keep observed links, but do not assert the net release-note state.
+  if (commits.length < document.commits.length) {
+    for (const row of commits) row.releaseNote = 'unknown';
+  }
   for (const [index, item] of parsed.entries()) {
     const row = commits[index];
     if (row.releaseNote !== 'none' || item.kind === 'revert') continue;
