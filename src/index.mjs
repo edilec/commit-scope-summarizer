@@ -235,7 +235,11 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
     }
     if (duplicateIds.has(item.reverts) || targetIndex === index || !parsed[targetIndex].kind) {
       add('revert-ambiguous', pointer, 'Revert target cannot be identified uniquely.');
-      commits[targetIndex].releaseNote = 'uncertain';
+      if (duplicateIds.has(item.reverts)) {
+        for (const [candidateIndex, candidate] of parsed.entries()) {
+          if (candidate.id === item.reverts) commits[candidateIndex].releaseNote = 'uncertain';
+        }
+      } else commits[targetIndex].releaseNote = 'uncertain';
       continue;
     }
     const target = commits[targetIndex];

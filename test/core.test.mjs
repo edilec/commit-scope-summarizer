@@ -143,6 +143,29 @@ test('duplicate IDs and unsupported metadata never create a clean classification
   assert.equal(JSON.stringify(extra).includes('SYNTHETIC_AUTHOR_CANARY'), false);
 });
 
+test('an ambiguous revert target cannot leave either duplicate identity as an active candidate', () => {
+  const document = clean();
+  document.commits = [
+    { id: a, subject: 'feat(ui): first synthetic view', files: ['packages/app/src/first.js'], reverts: null },
+    { id: a, subject: 'feat(ui): second synthetic view', files: ['packages/app/src/second.js'], reverts: null },
+    { id: b, subject: 'revert(ui): undo synthetic view', files: ['packages/app/src/first.js'], reverts: a },
+  ];
+  const ambiguous = summarizeHistory(document, { now: () => 0 });
+  assert.equal(ambiguous.status, 'incomplete');
+  assert.equal(ambiguous.findings.some(f => f.ruleId === 'commit-duplicate'), true);
+  assert.equal(ambiguous.findings.some(f => f.ruleId === 'revert-ambiguous'), true);
+  assert.deepEqual(ambiguous.commits.slice(0, 2).map(row => row.releaseNote), ['uncertain', 'uncertain']);
+  assert.deepEqual(ambiguous.releaseNotes, []);
+  assert.equal(ambiguous.findings.some(f => f.ruleId === 'release-note-review'), false);
+
+  document.commits[1].id = c;
+  const unique = summarizeHistory(document, { now: () => 0 });
+  assert.equal(unique.status, 'fail');
+  assert.equal(unique.commits[0].releaseNote, 'reverted');
+  assert.equal(unique.commits[1].releaseNote, 'candidate');
+  assert.equal(unique.summary.candidates, 1);
+});
+
 test('nested package roots choose the deepest owner and preserve an explicit root group', () => {
   const document = clean();
   document.packageRoots = ['packages/z', 'packages/z/child', 'packages/A'];
