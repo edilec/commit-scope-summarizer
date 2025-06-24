@@ -56,6 +56,8 @@ retained as source-position ordinals, not treated as chronology. The report
 contains ordinals, rule IDs and literal source pointers, but does not publish
 raw commit IDs, messages, filenames, scopes or author names. An author is
 neither required nor invented. Commit text is never executed.
+Finding locations use the fixed logical file label `input`; the path supplied
+to locate the export is never copied into the report.
 
 ## Rules and exits
 

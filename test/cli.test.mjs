@@ -54,6 +54,31 @@ test('missing and malformed named exports are incomplete reports with no raw dia
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('an input basename is a locator, not report evidence, even when the named export is invalid', () => {
+  const root = mkdtempSync(join(tmpdir(), 'commit-scope-private-name-'));
+  const name = 'token-SYNTHETIC_SECRET_CANARY.json';
+  try {
+    const badSubject = {
+      schemaVersion: '1', packageRoots: [], commits: [
+        { id: 'a'.repeat(40), subject: 'unsupported synthetic subject', files: ['README.md'], reverts: null },
+      ],
+    };
+    writeFileSync(join(root, name), JSON.stringify(badSubject));
+    const invalid = run('--root', root, '--input', name);
+    assert.equal(invalid.status, 2);
+    assert.deepEqual(JSON.parse(invalid.stdout).findings.map(f => f.ruleId), ['subject-unsupported']);
+    assert.deepEqual(JSON.parse(invalid.stdout).findings.map(f => f.location.file), ['input']);
+    assert.equal((invalid.stdout + invalid.stderr).includes('SYNTHETIC_SECRET_CANARY'), false);
+
+    writeFileSync(join(root, name), '{broken JSON');
+    const malformed = run('--root', root, '--input', name);
+    assert.equal(malformed.status, 2);
+    assert.deepEqual(JSON.parse(malformed.stdout).findings.map(f => f.ruleId), ['input-invalid']);
+    assert.deepEqual(JSON.parse(malformed.stdout).findings.map(f => f.location.file), ['input']);
+    assert.equal((malformed.stdout + malformed.stderr).includes('SYNTHETIC_SECRET_CANARY'), false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('a named symlink cannot import history evidence outside the real root', () => {
   const root = mkdtempSync(join(tmpdir(), 'commit-scope-root-'));
   const outside = mkdtempSync(join(tmpdir(), 'commit-scope-outside-'));

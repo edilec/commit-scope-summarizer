@@ -23,6 +23,7 @@ const RULE_SEVERITY = Object.freeze({
   'input-alias-unsupported': 'warning',
 });
 const byCodeUnit = (a, b) => a === b ? 0 : a < b ? -1 : 1;
+const REPORT_FILE = 'input';
 const safePath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9._/-]+$/u;
 export const isSafePath = value => typeof value === 'string' && value.length <= 256 && safePath.test(value) &&
   !value.split('/').some(part => !part || part === '.');
@@ -40,7 +41,7 @@ export function incompleteInput(file, ruleId, pointer = '') {
   return { schemaVersion: '1', tool: TOOL_ID, status: 'incomplete',
     summary: { checked: 0, errors: 0, warnings: 1, commits: 0, packages: 0, features: 0, candidates: 0, reverts: 0 },
     findings: [{ ruleId, severity: RULE_SEVERITY[ruleId], message,
-      location: { file, ...(pointer ? { pointer } : {}) } }],
+      location: { file: REPORT_FILE, ...(pointer ? { pointer } : {}) } }],
     packageGroups: [], featureGroups: [], commits: [], releaseNotes: [], relationships: [] };
 }
 const isId = value => typeof value === 'string' && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/u.test(value);
@@ -77,7 +78,7 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
   const add = (ruleId, pointer, message) => {
     const severity = RULE_SEVERITY[ruleId];
     if (!severity) throw Error('Unknown report rule.');
-    findings.push({ ruleId, severity, message, location: { file, pointer } });
+    findings.push({ ruleId, severity, message, location: { file: REPORT_FILE, pointer } });
     if (severity === 'warning') incomplete = true;
   };
   let firstTime;
