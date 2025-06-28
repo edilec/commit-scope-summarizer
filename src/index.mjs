@@ -125,16 +125,21 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
   const roots = [];
   const seenRoots = new Set();
   const rootsTruncated = document.packageRoots.length > bounds.maxPackageRoots;
+  let rootsUnusable = rootsTruncated;
+  let rootsVisited = 0;
   if (rootsTruncated) add('limit-exceeded', '/limits/maxPackageRoots', 'Package-root count exceeds limit.');
   for (const [index, path] of document.packageRoots.slice(0, bounds.maxPackageRoots).entries()) {
     if (!tick()) break;
+    rootsVisited++;
     if (!isSafePath(path) || seenRoots.has(path)) {
       add('package-invalid', `/packageRoots/${index}`, 'Package root is unsafe or duplicated.');
+      rootsUnusable = true;
       continue;
     }
     seenRoots.add(path);
     roots.push({ path, sourcePointer: `/packageRoots/${index}` });
   }
+  if (rootsVisited < Math.min(document.packageRoots.length, bounds.maxPackageRoots)) rootsUnusable = true;
   roots.sort((a, b) => byCodeUnit(a.path, b.path));
   for (const [index, root] of roots.entries()) {
     packageGroups.push({ ordinal: index + 1, sourcePointer: root.sourcePointer, commitOrdinals: [] });
@@ -189,7 +194,7 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
       add('revert-ambiguous', `${pointer}/reverts`, 'A non-revert commit declares a revert target.');
     }
     const packageOrdinals = [];
-    if (rootsTruncated) validFiles = false;
+    if (rootsUnusable) validFiles = false;
     if (validFiles) {
       for (const path of files) {
         const target = [...roots].sort((a, b) => b.path.length - a.path.length || byCodeUnit(a.path, b.path))

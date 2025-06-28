@@ -178,6 +178,23 @@ test('nested package roots choose the deepest owner and preserve an explicit roo
   assert.deepEqual(report.commits[0].packageOrdinals, [0, 3]);
 });
 
+test('a dropped package root cannot turn its files into known unmatched files', () => {
+  const document = clean();
+  document.commits[0].files = ['packages/app/src/view.js'];
+  const known = summarizeHistory(document, { now: () => 0 });
+  assert.equal(known.status, 'pass');
+  assert.deepEqual(known.commits[0].packageOrdinals, [1]);
+  assert.equal(known.summary.checked, 1);
+
+  document.packageRoots[0] = 'packages/app/';
+  const unknown = summarizeHistory(document, { now: () => 0 });
+  assert.equal(unknown.status, 'incomplete');
+  assert.equal(unknown.findings.some(f => f.ruleId === 'package-invalid' && f.location.pointer === '/packageRoots/0'), true);
+  assert.equal(unknown.commits[0].packageOrdinals, null);
+  assert.equal(unknown.summary.checked, 0);
+  assert.equal(unknown.packageGroups.some(group => group.ordinal === 0), false);
+});
+
 test('feature ordinals sort by UTF-16 code unit without echoing scope names', () => {
   const document = clean();
   document.commits = [
