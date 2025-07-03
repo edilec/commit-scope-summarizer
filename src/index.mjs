@@ -276,9 +276,10 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
       prior = commits[prior - 1].revertsOrdinal;
     }
   }
-  // A later, unexamined commit can revert any visible change or undo a visible
-  // revert. Keep observed links, but do not assert the net release-note state.
-  if (commits.length < document.commits.length) {
+  // A later, unexamined commit, or an observed revert with no usable target,
+  // can affect any visible change. Keep observed links, but do not assert the
+  // net release-note state until the target evidence is complete.
+  if (commits.length < document.commits.length || parsed.some(item => item.kind === 'revert' && !item.reverts)) {
     for (const row of commits) row.releaseNote = 'unknown';
   }
   for (const [index, item] of parsed.entries()) {

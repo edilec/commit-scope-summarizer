@@ -166,6 +166,26 @@ test('an ambiguous revert target cannot leave either duplicate identity as an ac
   assert.equal(unique.summary.candidates, 1);
 });
 
+test('a revert without a usable target makes visible release-note activity unknown', () => {
+  const document = clean();
+  document.commits = [
+    { id: a, subject: 'feat(ui): add synthetic view', files: ['packages/app/src/view.js'], reverts: null },
+    { id: b, subject: 'revert(ui): undo a synthetic view', files: ['packages/app/src/view.js'], reverts: null },
+  ];
+  const missing = summarizeHistory(document, { now: () => 0 });
+  assert.equal(missing.status, 'incomplete');
+  assert.equal(missing.findings.some(f => f.ruleId === 'revert-unresolved' && f.location.pointer === '/commits/1/reverts'), true);
+  assert.equal(missing.commits[0].releaseNote, 'unknown');
+  assert.deepEqual(missing.releaseNotes, []);
+  assert.equal(missing.findings.some(f => f.ruleId === 'release-note-review'), false);
+
+  document.commits[1].reverts = a;
+  const known = summarizeHistory(document, { now: () => 0 });
+  assert.equal(known.status, 'pass');
+  assert.equal(known.commits[0].releaseNote, 'reverted');
+  assert.equal(known.summary.candidates, 0);
+});
+
 test('nested package roots choose the deepest owner and preserve an explicit root group', () => {
   const document = clean();
   document.packageRoots = ['packages/z', 'packages/z/child', 'packages/A'];
