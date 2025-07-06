@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeHistory, isSafePath } from '../src/index.mjs';
+import { summarizeHistory, isSafePath, ConfigError } from '../src/index.mjs';
 
 const a = 'a'.repeat(40);
 const b = 'b'.repeat(40);
@@ -301,4 +301,12 @@ test('injected clock allows exact deadline but refuses elapsed N plus one and ba
   assert.equal(summarizeHistory(clean(), { now: () => NaN }).status, 'incomplete');
   const backward = (() => { let calls = 0; return () => calls++ === 0 ? 1 : 0; })();
   assert.equal(summarizeHistory(clean(), { now: backward }).status, 'incomplete');
+});
+
+test('only own declared analysis limit names are accepted', () => {
+  assert.equal(summarizeHistory(clean(), { now: () => 0, limits: { maxCommits: 1 } }).status, 'pass');
+  for (const key of ['toString', 'constructor', '__proto__']) {
+    const limits = JSON.parse(`{"${key}":1}`);
+    assert.throws(() => summarizeHistory(clean(), { now: () => 0, limits }), ConfigError, key);
+  }
 });

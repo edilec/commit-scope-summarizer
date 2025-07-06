@@ -57,7 +57,7 @@ function subjectParts(subject, maxSubjectUnits) {
 function checkedLimits(limits) {
   if (!limits || typeof limits !== 'object' || Array.isArray(limits)) throw new ConfigError('Invalid limits.');
   for (const [key, value] of Object.entries(limits)) {
-    if (!(key in DEFAULT_LIMITS) || !Number.isSafeInteger(value) || value < 1 || value > DEFAULT_LIMITS[key]) {
+    if (!Object.hasOwn(DEFAULT_LIMITS, key) || !Number.isSafeInteger(value) || value < 1 || value > DEFAULT_LIMITS[key]) {
       throw new ConfigError('Invalid limit.');
     }
   }
