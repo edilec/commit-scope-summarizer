@@ -310,3 +310,11 @@ test('only own declared analysis limit names are accepted', () => {
     assert.throws(() => summarizeHistory(clean(), { now: () => 0, limits }), ConfigError, key);
   }
 });
+
+test('the in-memory API refuses a byte limit it cannot measure from an original export', () => {
+  const document = clean();
+  const encodedBytes = Buffer.byteLength(JSON.stringify(document));
+  assert.equal(summarizeHistory(document, { now: () => 0 }).status, 'pass');
+  assert.throws(() => summarizeHistory(document, { now: () => 0, limits: { maxBytes: encodedBytes } }), ConfigError);
+  assert.throws(() => summarizeHistory(document, { now: () => 0, limits: { maxBytes: encodedBytes - 1 } }), ConfigError);
+});

@@ -57,6 +57,9 @@ function subjectParts(subject, maxSubjectUnits) {
 function checkedLimits(limits) {
   if (!limits || typeof limits !== 'object' || Array.isArray(limits)) throw new ConfigError('Invalid limits.');
   for (const [key, value] of Object.entries(limits)) {
+    // An in-memory object has no original byte count. The CLI enforces this
+    // bound on the named export before parsing; accepting it here would lie.
+    if (key === 'maxBytes') throw new ConfigError('Byte limit requires a named byte input.');
     if (!Object.hasOwn(DEFAULT_LIMITS, key) || !Number.isSafeInteger(value) || value < 1 || value > DEFAULT_LIMITS[key]) {
       throw new ConfigError('Invalid limit.');
     }

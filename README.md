@@ -83,6 +83,9 @@ The default limits are 1,048,576 input bytes, 128 commits, 64 package roots,
 JSON nodes and 2,000 elapsed milliseconds. Exactly at a bound is permitted;
 N+1 is incomplete. Library callers may lower analysis bounds through `limits`
 and inject a finite, monotone `now` clock; CLI uses the documented defaults.
+`maxBytes` is a byte-input bound enforced by the CLI before parsing. The
+in-memory library rejects a `maxBytes` override because the original export's
+byte length is unavailable there; it never accepts an unenforced byte limit.
 Every report is sorted deterministically without locale collation.
 
 This is a narrow exported-history profile, not a generic `git log` parser. It
