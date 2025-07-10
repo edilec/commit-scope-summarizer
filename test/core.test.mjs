@@ -186,6 +186,35 @@ test('a revert without a usable target makes visible release-note activity unkno
   assert.equal(known.summary.candidates, 0);
 });
 
+test('an unclassified or contradictory commit may hide a revert, so active release state is unknown', () => {
+  const document = clean();
+  document.commits = [
+    { id: a, subject: 'feat(ui): add synthetic view', files: ['packages/app/src/view.js'], reverts: null },
+    { id: b, subject: 'docs(ui): describe synthetic view', files: ['packages/app/README.md'], reverts: null },
+  ];
+  const known = summarizeHistory(document, { now: () => 0 });
+  assert.equal(known.status, 'fail');
+  assert.equal(known.summary.candidates, 1);
+
+  for (const reverts of [a, null]) {
+    document.commits[1].subject = 'revert: undo synthetic view';
+    document.commits[1].reverts = reverts;
+    const unknown = summarizeHistory(document, { now: () => 0 });
+    assert.equal(unknown.status, 'incomplete');
+    assert.equal(unknown.findings.some(f => f.ruleId === 'subject-unsupported'), true);
+    assert.equal(unknown.commits[0].releaseNote, 'unknown');
+    assert.deepEqual(unknown.releaseNotes, []);
+    assert.equal(unknown.findings.some(f => f.ruleId === 'release-note-review'), false);
+  }
+
+  document.commits[1].subject = 'docs(ui): describe synthetic view';
+  document.commits[1].reverts = a;
+  const contradictory = summarizeHistory(document, { now: () => 0 });
+  assert.equal(contradictory.status, 'incomplete');
+  assert.equal(contradictory.commits[0].releaseNote, 'unknown');
+  assert.deepEqual(contradictory.releaseNotes, []);
+});
+
 test('nested package roots choose the deepest owner and preserve an explicit root group', () => {
   const document = clean();
   document.packageRoots = ['packages/z', 'packages/z/child', 'packages/A'];

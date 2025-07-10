@@ -279,10 +279,12 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
       prior = commits[prior - 1].revertsOrdinal;
     }
   }
-  // A later, unexamined commit, or an observed revert with no usable target,
-  // can affect any visible change. Keep observed links, but do not assert the
-  // net release-note state until the target evidence is complete.
-  if (commits.length < document.commits.length || parsed.some(item => item.kind === 'revert' && !item.reverts)) {
+  // A later unexamined commit, an unclassified subject, a targetless revert,
+  // or contradictory revert metadata can affect any visible change. Keep
+  // observed links, but do not assert the net release-note state.
+  const unknownRevertEffect = parsed.some(item => item.kind === null ||
+    (item.kind === 'revert' && !item.reverts) || (item.kind !== 'revert' && item.reverts !== null));
+  if (commits.length < document.commits.length || unknownRevertEffect) {
     for (const row of commits) row.releaseNote = 'unknown';
   }
   for (const [index, item] of parsed.entries()) {
