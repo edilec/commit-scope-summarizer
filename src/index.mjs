@@ -244,11 +244,7 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
     }
     if (duplicateIds.has(item.reverts) || targetIndex === index || !parsed[targetIndex].kind) {
       add('revert-ambiguous', pointer, 'Revert target cannot be identified uniquely.');
-      if (duplicateIds.has(item.reverts)) {
-        for (const [candidateIndex, candidate] of parsed.entries()) {
-          if (candidate.id === item.reverts) commits[candidateIndex].releaseNote = 'uncertain';
-        }
-      } else commits[targetIndex].releaseNote = 'uncertain';
+      if (!duplicateIds.has(item.reverts)) commits[targetIndex].releaseNote = 'uncertain';
       continue;
     }
     const target = commits[targetIndex];
@@ -278,6 +274,11 @@ export function summarizeHistory(document, { now = Date.now, file = 'input.json'
       commits[prior - 1].releaseNote = 'uncertain';
       prior = commits[prior - 1].revertsOrdinal;
     }
+  }
+  // A repeated ID is not two independently attributable changes, even when
+  // no explicit revert refers to it. It also makes any revert target ambiguous.
+  for (const [index, item] of parsed.entries()) {
+    if (item.id !== null && duplicateIds.has(item.id)) commits[index].releaseNote = 'uncertain';
   }
   // A later unexamined commit, an unclassified subject, a targetless revert,
   // or contradictory revert metadata can affect any visible change. Keep

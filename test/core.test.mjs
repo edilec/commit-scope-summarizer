@@ -166,6 +166,27 @@ test('an ambiguous revert target cannot leave either duplicate identity as an ac
   assert.equal(unique.summary.candidates, 1);
 });
 
+test('a duplicate commit identity is not two independently active release-note candidates', () => {
+  const document = clean();
+  document.commits = [
+    { id: a, subject: 'feat(ui): first synthetic view', files: ['packages/app/src/first.js'], reverts: null },
+    { id: b, subject: 'feat(ui): second synthetic view', files: ['packages/app/src/second.js'], reverts: null },
+  ];
+  const unique = summarizeHistory(document, { now: () => 0 });
+  assert.equal(unique.status, 'fail');
+  assert.equal(unique.summary.candidates, 2);
+  assert.deepEqual(unique.commits.map(row => row.releaseNote), ['candidate', 'candidate']);
+
+  document.commits[1].id = a;
+  const duplicate = summarizeHistory(document, { now: () => 0 });
+  assert.equal(duplicate.status, 'incomplete');
+  assert.equal(duplicate.findings.some(f => f.ruleId === 'commit-duplicate'), true);
+  assert.deepEqual(duplicate.commits.map(row => row.releaseNote), ['uncertain', 'uncertain']);
+  assert.equal(duplicate.summary.candidates, 0);
+  assert.deepEqual(duplicate.releaseNotes, []);
+  assert.equal(duplicate.findings.some(f => f.ruleId === 'release-note-review'), false);
+});
+
 test('a revert without a usable target makes visible release-note activity unknown', () => {
   const document = clean();
   document.commits = [
