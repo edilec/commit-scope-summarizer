@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1",
+  "packageRoots": ["packages/app"],
+  "commits": [
+    {
+      "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "subject": "revert(ui): undo an unavailable change",
+      "files": ["packages/app/src/view.js"],
+      "reverts": "cccccccccccccccccccccccccccccccccccccccc"
+    }
+  ]
+}
